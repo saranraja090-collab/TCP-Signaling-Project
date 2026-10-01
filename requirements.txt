@@ -1,0 +1,4 @@
+# Core Testing Framework
+# At this initial stage, only standard Python 3 libraries are used for architecture and simulation.
+# pytest is included for unit testing and test-driven development.
+pytest>=8.0.0

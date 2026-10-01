@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & testing caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Project output data (keep directories tracked via README.md)
+captures/*.pcap
+captures/*.json
+results/*.csv
+results/*.json
+
+# Compiled C binaries & build artifacts
+*.exe
+*.o
+*.obj
+backend/bin/
+*.out

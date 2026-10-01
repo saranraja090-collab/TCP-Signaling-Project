@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Header Data Modulation &amp; Signaling — Academic Computer Networks Project</title>
+    <meta name="description" content="Experimental TCP header signaling using simulated transport-layer metadata with strictly zero-byte application payloads.">
+    
+    <!-- Google Fonts: Inter for clean typography, JetBrains Mono for technical values -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Master Stylesheet: Light Network Green Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="light-theme">
+    <div class="layout-container">
+        <!-- Compact Dark/Slate Sidebar with Green Accents -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="brand-glyph" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="brand-info">
+                        <span class="brand-title-compact">TCP SIGNAL</span>
+                        <span class="brand-tag">Academic NetSim</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compact Navigation Menu -->
+            <nav class="sidebar-nav" aria-label="Main Navigation">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#view-experiment" class="nav-link active" data-view="experiment" id="nav-link-experiment">
+                            <span class="nav-icon" aria-hidden="true">◉</span>
+                            <span class="nav-label">Experiment</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#view-results" class="nav-link" data-view="results" id="nav-link-results">
+                            <span class="nav-icon" aria-hidden="true">▣</span>
+                            <span class="nav-label">Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#view-network-flow" class="nav-link" data-view="network-flow" id="nav-link-flow">
+                            <span class="nav-icon" aria-hidden="true">⇄</span>
+                            <span class="nav-label">Network Flow</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#view-packet-stream" class="nav-link" data-view="packet-stream" id="nav-link-packets">
+                            <span class="nav-icon" aria-hidden="true">⌁</span>
+                            <span class="nav-label">Packet Stream</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#view-comparison" class="nav-link" data-view="comparison" id="nav-link-comparison">
+                            <span class="nav-icon" aria-hidden="true">⇄</span>
+                            <span class="nav-label">Comparison</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#view-about" class="nav-link" data-view="about" id="nav-link-about">
+                            <span class="nav-icon" aria-hidden="true">ⓘ</span>
+                            <span class="nav-label">About</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer Status Indicator -->
+            <div class="sidebar-footer">
+                <div class="sidebar-spec-badge">
+                    <span class="badge-dot-green"></span>
+                    <div class="sidebar-spec-text">
+                        <div class="spec-name">Design Constraint</div>
+                        <div class="spec-val">0 B Application Payload</div>
+                    </div>
+                </div>
+                <div class="sidebar-backend-info">
+                    <span class="engine-tag">Engine: C99 / GCC Backend</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Viewport -->
+        <div class="main-wrapper">
+            <!-- Top Header -->
+            <header class="top-header" id="main-header">
+                <div class="header-left">
+                    <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Toggle Navigation">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <div class="header-titles">
+                        <h1 class="header-main-title">TCP HEADER DATA MODULATION &amp; SIGNALING</h1>
+                        <div class="header-subtitle">Academic Computer Networks Project</div>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div id="backend-status-pill" class="badge-status-green {% if backend_info.available %}status-ready{% else %}status-warning{% endif %}">
+                        <span class="status-dot"></span>
+                        <span id="backend-status-text">
+                            {% if backend_info.available %}● Backend Connected{% else %}● Backend: {{ backend_info.status }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="badge-payload-zero">
+                        <span class="badge-payload-prefix">Payload =</span> 0 B
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area with Dedicated Views -->
+            <main class="dashboard-body">
+
+                <!-- =========================================================================
+                     VIEW 1: EXPERIMENT (MAIN LAB SIMULATOR)
+                     ========================================================================= -->
+                <div class="app-view active" id="view-experiment">
+                    <!-- Academic Top Project Description Banner (Requirement 2) -->
+                    <div class="academic-banner" id="academic-banner">
+                        <div class="banner-badge">DISCRETE IN-MEMORY SIMULATION</div>
+                        <div class="banner-text-block">
+                            <div class="banner-text-primary">
+                                Experimental TCP header signaling using simulated transport-layer metadata.
+                            </div>
+                            <div class="banner-text-secondary">
+                                Application Payload = Strictly 0 Bytes throughout the simulation.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prominent "0 BYTE PAYLOAD" Hero Feature Card (Requirement 5) -->
+                    <div class="card card-payload-hero" id="zero-payload-feature-card">
+                        <div class="payload-hero-header">
+                            <span class="payload-hero-badge">CORE PROJECT CONSTRAINT</span>
+                            <span class="payload-hero-rfc">Transport Layer Metadata Signaling</span>
+                        </div>
+                        <div class="payload-hero-body">
+                            <div class="payload-hero-label">APPLICATION PAYLOAD</div>
+                            <div class="payload-hero-value font-mono">0 BYTES</div>
+                            <p class="payload-hero-desc">
+                                Information is represented using selected TCP header metadata in this simulation.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Experiment Configuration & Method Info Grid (Requirement 3) -->
+                    <div class="experiment-grid">
+                        <!-- Main Experiment Configuration Card -->
+                        <div class="card card-experiment" id="experiment-config-card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title">EXPERIMENT CONFIGURATION</h2>
+                                    <p class="card-subtitle">Set plaintext message, modulation mechanism, and simulated channel impairments</p>
+                                </div>
+                                <span class="badge badge-subtle">Parameters</span>
+                            </div>
+
+                            <form id="experiment-form" onsubmit="return false;">
+                                <!-- Message Input -->
+                                <div class="form-group">
+                                    <label for="input-message" class="form-label">
+                                        Message
+                                        <span class="label-desc">Plaintext string to modulate into TCP headers</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="input-message" 
+                                        class="form-control font-mono" 
+                                        value="HELLO NETWORK" 
+                                        maxlength="128" 
+                                        placeholder="Enter message to signal..." 
+                                        required
+                                    >
+                                    <div class="quick-preset-row">
+                                        <span class="preset-label">Quick Presets:</span>
+                                        <button type="button" class="btn-preset" onclick="setPreset('HELLO NETWORK')">HELLO NETWORK</button>
+                                        <button type="button" class="btn-preset" onclick="setPreset('TCP PROTOCOL')">TCP PROTOCOL</button>
+                                        <button type="button" class="btn-preset" onclick="setPreset('ZERO PAYLOAD 0B')">ZERO PAYLOAD 0B</button>
+                                    </div>
+                                </div>
+
+                                <!-- Signaling Method Radio Selection -->
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        Signaling Method
+                                        <span class="label-desc">Select transport header field used for bit representation</span>
+                                    </label>
+                                    <div class="method-radio-group">
+                                        <!-- Sequence Number -->
+                                        <label class="method-option-card active" id="card-method-sequence">
+                                            <input type="radio" name="signaling-method" id="method-select-sequence" value="sequence" checked>
+                                            <div class="method-option-indicator"></div>
+                                            <div class="method-option-content">
+                                                <div class="method-option-name">Sequence Number</div>
+                                                <div class="method-option-detail">32-bit TCP Sequence field: &Delta;seq (+100 for Bit 0 / +200 for Bit 1)</div>
+                                            </div>
+                                        </label>
+
+                                        <!-- Window Size -->
+                                        <label class="method-option-card" id="card-method-window">
+                                            <input type="radio" name="signaling-method" id="method-select-window" value="window">
+                                            <div class="method-option-indicator"></div>
+                                            <div class="method-option-content">
+                                                <div class="method-option-name">Window Size</div>
+                                                <div class="method-option-detail">16-bit TCP Window field: 30000 B for Bit 0 / 60000 B for Bit 1</div>
+                                            </div>
+                                        </label>
+
+                                        <!-- Compare Both -->
+                                        <label class="method-option-card" id="card-method-compare">
+                                            <input type="radio" name="signaling-method" id="method-select-compare" value="compare">
+                                            <div class="method-option-indicator"></div>
+                                            <div class="method-option-content">
+                                                <div class="method-option-name">Compare Both</div>
+                                                <div class="method-option-detail">Empirical side-by-side benchmark under identical channel conditions</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Network Conditions (%) -->
+                                <div class="form-group impairment-block">
+                                    <div class="impairment-header-row">
+                                        <label class="form-label mb-0">
+                                            Network Conditions (%)
+                                            <span class="label-desc">Inject transport layer channel impairments</span>
+                                        </label>
+                                        <button type="button" class="btn-preset btn-reset" onclick="resetImpairments()">Reset All (0%)</button>
+                                    </div>
+
+                                    <!-- Quick Condition Presets -->
+                                    <div class="quick-preset-row mb-3">
+                                        <span class="preset-label">Conditions:</span>
+                                        <button type="button" class="btn-preset" onclick="setConditionPreset(0, 0, 0)">Normal</button>
+                                        <button type="button" class="btn-preset" onclick="setConditionPreset(10, 0, 0)">Packet Loss</button>
+                                        <button type="button" class="btn-preset" onclick="setConditionPreset(0, 10, 0)">Corruption</button>
+                                        <button type="button" class="btn-preset" onclick="setConditionPreset(0, 0, 10)">Reordering</button>
+                                        <button type="button" class="btn-preset" onclick="setConditionPreset(5, 5, 5)">Combined</button>
+                                    </div>
+
+                                    <!-- Sliders Grid -->
+                                    <div class="sliders-grid">
+                                        <!-- Packet Loss -->
+                                        <div class="slider-field">
+                                            <div class="slider-info">
+                                                <span class="slider-title">Packet Loss</span>
+                                                <span class="slider-number font-mono" id="loss-val-display">0%</span>
+                                            </div>
+                                            <input type="range" id="input-loss" min="0" max="100" value="0" step="1" class="range-slider" oninput="updateSliderVal('loss', this.value)">
+                                        </div>
+
+                                        <!-- Corruption -->
+                                        <div class="slider-field">
+                                            <div class="slider-info">
+                                                <span class="slider-title">Corruption</span>
+                                                <span class="slider-number font-mono" id="corrupt-val-display">0%</span>
+                                            </div>
+                                            <input type="range" id="input-corrupt" min="0" max="100" value="0" step="1" class="range-slider" oninput="updateSliderVal('corrupt', this.value)">
+                                        </div>
+
+                                        <!-- Reordering -->
+                                        <div class="slider-field">
+                                            <div class="slider-info">
+                                                <span class="slider-title">Reordering</span>
+                                                <span class="slider-number font-mono" id="reorder-val-display">0%</span>
+                                            </div>
+                                            <input type="range" id="input-reorder" min="0" max="100" value="0" step="1" class="range-slider" oninput="updateSliderVal('reorder', this.value)">
+                                        </div>
+
+                                        <!-- Random Seed -->
+                                        <div class="slider-field seed-field">
+                                            <div class="slider-info">
+                                                <span class="slider-title">Random Seed</span>
+                                                <span class="slider-hint">Deterministic PRNG</span>
+                                            </div>
+                                            <input type="number" id="input-seed" class="form-control seed-input font-mono" placeholder="e.g. 42 (optional)">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Run Experiment Button (Visually Prominent Emerald Network Green) -->
+                                <div class="form-actions-row">
+                                    <button type="button" id="btn-start-experiment" class="btn btn-primary btn-run btn-hero-run">
+                                        <span class="btn-icon">▶</span>
+                                        <span id="btn-text">RUN EXPERIMENT</span>
+                                        <span id="btn-spinner" class="spinner-dot hidden"></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Method Information Card -->
+                        <div class="card card-method-info" id="method-info-card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title" id="method-info-title">SEQUENCE NUMBER SIGNALING</h2>
+                                    <p class="card-subtitle">Active encoding scheme &amp; bit mapping architecture</p>
+                                </div>
+                                <span class="badge badge-accent-green">Modulation Rule</span>
+                            </div>
+
+                            <div class="method-info-content" id="method-info-details">
+                                <div class="mapping-list">
+                                    <div class="mapping-item">
+                                        <span class="mapping-symbol font-mono">Bit 0</span>
+                                        <span class="mapping-arrow">&rarr;</span>
+                                        <span class="mapping-effect"><strong>+100</strong> sequence increment</span>
+                                    </div>
+                                    <div class="mapping-item">
+                                        <span class="mapping-symbol font-mono">Bit 1</span>
+                                        <span class="mapping-arrow">&rarr;</span>
+                                        <span class="mapping-effect"><strong>+200</strong> sequence increment</span>
+                                    </div>
+                                    <div class="mapping-item">
+                                        <span class="mapping-symbol font-mono">Payload</span>
+                                        <span class="mapping-arrow">&rarr;</span>
+                                        <span class="mapping-effect text-emerald"><strong>0 bytes</strong> (Strict Invariant)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Visualization Box -->
+                            <div class="visual-modulation-box" id="method-visualization">
+                                <div class="vis-header">MODULATION BIT VISUALIZATION</div>
+                                <div class="vis-diagram sequence-diagram">
+                                    <div class="vis-column">
+                                        <div class="bit-box font-mono">0</div>
+                                        <div class="vis-arrow">&darr;</div>
+                                        <div class="val-box font-mono">+100</div>
+                                    </div>
+                                    <div class="vis-column">
+                                        <div class="bit-box font-mono">1</div>
+                                        <div class="vis-arrow">&darr;</div>
+                                        <div class="val-box font-mono">+200</div>
+                                    </div>
+                                    <div class="vis-column">
+                                        <div class="bit-box font-mono">0</div>
+                                        <div class="vis-arrow">&darr;</div>
+                                        <div class="val-box font-mono">+100</div>
+                                    </div>
+                                    <div class="vis-column">
+                                        <div class="bit-box font-mono">1</div>
+                                        <div class="vis-arrow">&darr;</div>
+                                        <div class="val-box font-mono">+200</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Key Technical Properties -->
+                            <div class="method-specs-list">
+                                <div class="spec-row">
+                                    <span class="spec-key">Protocol Layer</span>
+                                    <span class="spec-val">Transport (Layer 4)</span>
+                                </div>
+                                <div class="spec-row">
+                                    <span class="spec-key">Modulated Field</span>
+                                    <span class="spec-val font-mono" id="method-spec-field">sequence_number (32-bit)</span>
+                                </div>
+                                <div class="spec-row">
+                                    <span class="spec-key">Application Payload</span>
+                                    <span class="spec-val text-emerald font-bold">0 Bytes</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prominent SIMULATION RESULT Section (Requirement 4) -->
+                    <div class="section-container mt-4" id="simulation-result-section">
+                        <div class="section-heading-row">
+                            <div>
+                                <h2 class="section-main-title">SIMULATION RESULT</h2>
+                                <p class="section-sub-title">Live empirical metrics returned by native C backend execution</p>
+                            </div>
+                            <span id="results-badge" class="badge-soft-green">IDLE • Awaiting Execution</span>
+                        </div>
+
+                        <!-- Four Major Statistics (Requirement 4) + Lost Packets -->
+                        <div class="stats-four-grid" id="statistics-container">
+                            <!-- Stat 1: Packets Generated -->
+                            <div class="stat-card">
+                                <div class="stat-number font-mono" id="res-stat-generated">0</div>
+                                <div class="stat-label">PACKETS GENERATED</div>
+                            </div>
+
+                            <!-- Stat 2: Packets Received -->
+                            <div class="stat-card">
+                                <div class="stat-number stat-green font-mono" id="res-stat-received">0</div>
+                                <div class="stat-label">PACKETS RECEIVED</div>
+                            </div>
+
+                            <!-- Stat 3: Application Payload (Prominently Highlighted) -->
+                            <div class="stat-card stat-card-payload">
+                                <div class="stat-badge-callout">0 B INVARIANT</div>
+                                <div class="stat-number stat-green font-mono font-bold" id="res-payload-size">0 B</div>
+                                <div class="stat-label">APPLICATION PAYLOAD</div>
+                            </div>
+
+                            <!-- Stat 4: Integrity Status -->
+                            <div class="stat-card stat-card-integrity">
+                                <div class="stat-number stat-green" id="res-integrity-status">IDLE</div>
+                                <div class="stat-label">INTEGRITY</div>
+                            </div>
+
+                            <!-- Supplementary Stat: Packets Lost -->
+                            <div class="stat-card stat-card-lost">
+                                <div class="stat-number font-mono" id="res-stat-lost">0</div>
+                                <div class="stat-label">PACKETS LOST</div>
+                            </div>
+                        </div>
+
+                        <!-- Message Result Card (Requirement 8) -->
+                        <div class="card card-message-result" id="message-result-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">MESSAGE RESULT</h3>
+                                    <p class="card-subtitle">End-to-end roundtrip transmission &amp; reconstruction fidelity</p>
+                                </div>
+                                <div class="header-badges-wrap">
+                                    <span class="badge-soft-green" id="message-match-badge">✓ MESSAGE MATCH</span>
+                                    <span class="badge badge-subtle font-mono" id="res-integrity-tag">Integrity: VERIFIED</span>
+                                </div>
+                            </div>
+
+                            <div class="message-flow-container">
+                                <div class="msg-box-col">
+                                    <div class="msg-box-tag">Original Message</div>
+                                    <div class="msg-box-content font-mono" id="comp-original">HELLO NETWORK</div>
+                                </div>
+
+                                <div class="msg-box-arrow" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <polyline points="19 12 12 19 5 12"></polyline>
+                                    </svg>
+                                </div>
+
+                                <div class="msg-box-col">
+                                    <div class="msg-box-tag">Decoded Message</div>
+                                    <div class="msg-box-content font-mono" id="comp-reconstructed">HELLO NETWORK</div>
+                                </div>
+                            </div>
+
+                            <div class="message-meta-strip">
+                                <div class="meta-item">
+                                    <span class="meta-label">Bit Error Rate (BER):</span>
+                                    <span class="meta-val font-mono" id="res-ber-display">0.0%</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Application Payload:</span>
+                                    <span class="meta-val text-emerald font-mono font-bold">0 B</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Execution Engine:</span>
+                                    <span class="meta-val font-mono">C99 In-Memory Engine</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Network Conditions Measured Table & Receiver Protocol Anomalies (Requirement 10) -->
+                        <div class="card card-table-section mt-4" id="net-stats-container">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">NETWORK CONDITIONS: CONFIGURED VS. MEASURED</h3>
+                                    <p class="card-subtitle">Empirical observation of applied impairments across simulated packets</p>
+                                </div>
+                                <span class="badge badge-subtle" id="res-net-conditions-badge">Configured: None (0%)</span>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Impairment Dimension</th>
+                                            <th>Configured Rate</th>
+                                            <th>Actual Packets Affected</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Packet Loss</td>
+                                            <td id="cond-loss-cfg" class="font-mono">0%</td>
+                                            <td id="cond-loss-act" class="font-mono text-rose">0 packets</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Header Corruption</td>
+                                            <td id="cond-corrupt-cfg" class="font-mono">0%</td>
+                                            <td id="cond-corrupt-act" class="font-mono text-warning">0 packets</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Packet Reordering</td>
+                                            <td id="cond-reorder-cfg" class="font-mono">0%</td>
+                                            <td id="cond-reorder-act" class="font-mono text-indigo">0 packets</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Detected Protocol Errors Banner -->
+                        <div class="card card-anomalies hidden" id="detected-errors-box">
+                            <div class="anomalies-header">
+                                <span class="anomalies-icon">⚠</span>
+                                <span class="anomalies-title">Receiver Protocol Anomalies Detected</span>
+                            </div>
+                            <div class="anomalies-list" id="detected-error-badges"></div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Network Flow on Experiment Page (Requirement 6 & 17) -->
+                    <div class="card card-network-flow mt-4" id="interactive-flow-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">NETWORK FLOW VISUALIZATION</h3>
+                                <p class="card-subtitle">Discrete transport-layer packet pipeline through simulated network</p>
+                            </div>
+                            <div class="flow-status-badge">
+                                <span class="pulse-dot-green"></span>
+                                <span class="flow-status-text">Pipeline Active</span>
+                            </div>
+                        </div>
+
+                        <!-- Horizontal Flow Container with Moving Packet Indicator (Requirement 17) -->
+                        <div class="horizontal-flow-container" id="horizontal-flow-container">
+                            <!-- Stage 1: Sender -->
+                            <div class="flow-card-node" id="node-sender">
+                                <div class="node-tag">ORIGIN</div>
+                                <div class="node-main-title">SENDER</div>
+                                <div class="node-sub-detail">Source Endpoint</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-1"></div>
+                            </div>
+
+                            <!-- Stage 2: Bit Encoder -->
+                            <div class="flow-card-node" id="node-encoder">
+                                <div class="node-tag">ENCODING</div>
+                                <div class="node-main-title">BIT ENCODER</div>
+                                <div class="node-sub-detail font-mono" id="flow-encoded-bits">01001000...</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-2"></div>
+                            </div>
+
+                            <!-- Stage 3: TCP Header Modulation (Dynamically updates) -->
+                            <div class="flow-card-node highlight-green-node" id="node-header-tx">
+                                <div class="node-tag">TCP HEADER</div>
+                                <div class="node-main-title" id="flow-header-field-tx">Sequence Number</div>
+                                <div class="node-sub-param font-mono" id="flow-header-value-tx">+100 / +200</div>
+                                <div class="node-payload-badge">Payload = 0 B</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-3"></div>
+                            </div>
+
+                            <!-- Stage 4: Network Simulation -->
+                            <div class="flow-card-node" id="node-network">
+                                <div class="node-tag">SIMULATION</div>
+                                <div class="node-main-title">NETWORK SIMULATION</div>
+                                <div class="node-sub-detail">Loss &bull; Corrupt &bull; Reorder</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-4"></div>
+                            </div>
+
+                            <!-- Stage 5: TCP Header Demodulation -->
+                            <div class="flow-card-node highlight-green-node" id="node-header-rx">
+                                <div class="node-tag">TCP HEADER</div>
+                                <div class="node-main-title" id="flow-header-field-rx">Sequence Number</div>
+                                <div class="node-sub-param font-mono">Extract &amp; Decode</div>
+                                <div class="node-payload-badge">Payload = 0 B</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-5"></div>
+                            </div>
+
+                            <!-- Stage 6: Receiver -->
+                            <div class="flow-card-node" id="node-receiver">
+                                <div class="node-tag">DESTINATION</div>
+                                <div class="node-main-title">RECEIVER</div>
+                                <div class="node-sub-detail">Reconstructs Stream</div>
+                            </div>
+
+                            <div class="flow-arrow-connector">
+                                <span class="connector-arrow-symbol">&rarr;</span>
+                                <div class="transit-dot" id="transit-dot-6"></div>
+                            </div>
+
+                            <!-- Stage 7: Message -->
+                            <div class="flow-card-node success-node" id="node-message-out">
+                                <div class="node-tag">RECONSTRUCTED</div>
+                                <div class="node-main-title font-mono" id="flow-message-output">HELLO NETWORK</div>
+                                <div class="node-sub-detail text-emerald font-bold">✓ VERIFIED</div>
+                            </div>
+                        </div>
+
+                        <!-- 0-Byte Payload Footnote -->
+                        <div class="flow-payload-banner">
+                            <span class="flow-payload-badge">APPLICATION PAYLOAD</span>
+                            <span class="flow-payload-val font-mono">0 BYTES</span>
+                            <span class="flow-payload-sub">Strict RFC Invariant &bull; Zero bytes in TCP application data segment</span>
+                        </div>
+                    </div>
+
+                    <!-- Message Transformation Visualization (Requirement 7) -->
+                    <div class="card card-transformation mt-4" id="message-transformation-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">MESSAGE TRANSFORMATION PIPELINE</h3>
+                                <p class="card-subtitle">Step-by-step representation of plaintext character encoding into TCP headers</p>
+                            </div>
+                            <span class="badge badge-accent-green">Bit Pipeline</span>
+                        </div>
+
+                        <div class="transformation-pipeline">
+                            <!-- Step 1: Original Message -->
+                            <div class="trans-step-card">
+                                <div class="trans-step-label">1. ORIGINAL MESSAGE</div>
+                                <div class="trans-step-content font-mono font-bold" id="trans-original-msg">"HELLO NETWORK"</div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 2: Binary Encoding -->
+                            <div class="trans-step-card">
+                                <div class="trans-step-label">2. BINARY ENCODING</div>
+                                <div class="trans-step-content font-mono font-bold text-indigo" id="trans-binary-bits">
+                                    01001000 01000101 01001100 01001100 01001111 ...
+                                </div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 3: Header Modulation -->
+                            <div class="trans-step-card highlight-step">
+                                <div class="trans-step-label">3. HEADER MODULATION</div>
+                                <div class="trans-step-content" id="trans-modulation-rules">
+                                    <span class="font-mono font-bold">Sequence Number:</span> 0 &rarr; <strong>+100</strong>, 1 &rarr; <strong>+200</strong>
+                                </div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 4: Simulated TCP Packets -->
+                            <div class="trans-step-card highlight-step">
+                                <div class="trans-step-label">4. SIMULATED TCP PACKETS</div>
+                                <div class="trans-step-content">
+                                    <span class="badge-status-green font-mono font-bold">Payload = 0 B</span>
+                                    <span class="trans-sub-note">Zero bytes carried in application layer</span>
+                                </div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 5: Header Demodulation -->
+                            <div class="trans-step-card">
+                                <div class="trans-step-label">5. HEADER DEMODULATION</div>
+                                <div class="trans-step-content">
+                                    Receiver measures TCP header values (&Delta;seq or window) to extract bitstream
+                                </div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 6: Binary Decoding -->
+                            <div class="trans-step-card">
+                                <div class="trans-step-label">6. BINARY DECODING</div>
+                                <div class="trans-step-content font-mono text-indigo" id="trans-decoded-bits">
+                                    01001000 01000101 01001100 ... &rarr; 8-bit ASCII bytes
+                                </div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 7: Reconstructed Message -->
+                            <div class="trans-step-card success-step">
+                                <div class="trans-step-label">7. RECONSTRUCTED MESSAGE</div>
+                                <div class="trans-step-content font-mono font-bold text-emerald" id="trans-reconstructed-msg">"HELLO NETWORK"</div>
+                            </div>
+
+                            <div class="trans-arrow">&darr;</div>
+
+                            <!-- Step 8: Integrity Verified -->
+                            <div class="trans-verified-badge" id="trans-verified-badge">
+                                ✓ INTEGRITY VERIFIED
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Packet Stream (Requirement 9) -->
+                    <div class="card card-table-section mt-4" id="packet-stream-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">LIVE PACKET STREAM</h3>
+                                <p class="card-subtitle" id="packet-stream-subtitle">
+                                    Simulated TCP segments generated by the C backend
+                                </p>
+                            </div>
+                            <div class="header-action-group">
+                                <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-packets" onclick="togglePacketView()">
+                                    Show All Packets
+                                </button>
+                                <span class="badge badge-subtle font-mono" id="packet-count-badge">0 packets</span>
+                            </div>
+                        </div>
+
+                        <!-- Clean White Packet Stream Table (Requirement 9) -->
+                        <div class="table-container">
+                            <table class="data-table packet-stream-table" id="packet-telemetry-table">
+                                <thead>
+                                    <tr>
+                                        <th>Packet ID</th>
+                                        <th>Sequence Number</th>
+                                        <th>Window Size</th>
+                                        <th>Payload</th>
+                                        <th>Signaled Bit</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="packet-table-body">
+                                    <tr>
+                                        <td colspan="6" class="table-empty-row">
+                                            Run an experiment to inspect simulated TCP packet stream.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Lifecycle Packet Flow Table (Step 4 & 7 Tests) -->
+                    <div class="card card-table-section mt-4" id="single-packet-flow-container">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Network Pipeline Packet Flow (Impairment Lifecycle)</h3>
+                                <p class="card-subtitle">Simulated packet journey through Corrupt &rarr; Loss &rarr; Reorder stages</p>
+                            </div>
+                            <span class="badge badge-subtle">Pipeline Flow</span>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="packet-flow-table">
+                                <thead>
+                                    <tr>
+                                        <th>Packet ID</th>
+                                        <th>Sequence Number</th>
+                                        <th>Window Size</th>
+                                        <th>Payload</th>
+                                        <th>Pipeline Status</th>
+                                        <th>Signaled Bit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="packet-flow-body">
+                                    <tr>
+                                        <td colspan="6" class="table-empty-row">
+                                            Run an experiment to inspect packet journey through simulated network.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================================================
+                     VIEW 2: DEDICATED RESULTS DASHBOARD (Requirement 15)
+                     ========================================================================= -->
+                <div class="app-view" id="view-results">
+                    <div class="section-heading-row">
+                        <div>
+                            <h2 class="section-main-title">EXPERIMENT RESULTS DASHBOARD</h2>
+                            <p class="section-sub-title">Complete telemetry, fidelity metrics, and network impairment evaluation</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('experiment')">
+                            &larr; Back to Experiment
+                        </button>
+                    </div>
+
+                    <!-- Primary Results Card -->
+                    <div class="card card-results-summary">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">ROUNDTRIP FIDELITY AUDIT</h3>
+                                <p class="card-subtitle">Transmission integrity and bit error rate measurement</p>
+                            </div>
+                            <span class="badge-soft-green font-mono font-bold" id="results-view-status">✓ VERIFIED</span>
+                        </div>
+
+                        <div class="results-dashboard-grid">
+                            <div class="res-item-box">
+                                <span class="res-item-label">Original Message</span>
+                                <span class="res-item-val font-mono" id="res-dash-original">HELLO NETWORK</span>
+                            </div>
+                            <div class="res-item-box">
+                                <span class="res-item-label">Decoded Message</span>
+                                <span class="res-item-val font-mono font-bold text-emerald" id="res-dash-decoded">HELLO NETWORK</span>
+                            </div>
+                            <div class="res-item-box">
+                                <span class="res-item-label">Packets Generated</span>
+                                <span class="res-item-val font-mono" id="res-dash-generated">104</span>
+                            </div>
+                            <div class="res-item-box">
+                                <span class="res-item-label">Packets Received</span>
+                                <span class="res-item-val font-mono text-emerald" id="res-dash-received">104</span>
+                            </div>
+                            <div class="res-item-box">
+                                <span class="res-item-label">Packets Lost</span>
+                                <span class="res-item-val font-mono text-rose" id="res-dash-lost">0</span>
+                            </div>
+                            <div class="res-item-box highlight-box">
+                                <span class="res-item-label">Application Payload</span>
+                                <span class="res-item-val font-mono text-emerald font-bold">0 B</span>
+                            </div>
+                            <div class="res-item-box">
+                                <span class="res-item-label">Bit Error Rate (BER)</span>
+                                <span class="res-item-val font-mono" id="res-dash-ber">0.0%</span>
+                            </div>
+                            <div class="res-item-box success-box">
+                                <span class="res-item-label">Integrity Status</span>
+                                <span class="res-item-val font-bold text-emerald" id="res-dash-integrity">✓ VERIFIED</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================================================
+                     VIEW 3: DEDICATED NETWORK FLOW PAGE (Requirement 14)
+                     ========================================================================= -->
+                <div class="app-view" id="view-network-flow">
+                    <!-- Page Header (Requirement 2) -->
+                    <div class="flow-page-header">
+                        <div class="flow-header-left">
+                            <h2 class="flow-page-title">NETWORK FLOW</h2>
+                            <p class="flow-page-subtitle">How information is represented using simulated TCP header metadata</p>
+                        </div>
+                        <div class="flow-header-badges">
+                            <span class="badge-soft-green">DISCRETE IN-MEMORY SIMULATION</span>
+                            <div class="badge-payload-zero">
+                                <span class="badge-payload-prefix">Application Payload:</span> 0 B
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Method Selector Bar (Requirement 7) -->
+                    <div class="card flow-control-bar">
+                        <div class="flow-control-left">
+                            <span class="flow-control-label">Signaling Method Architecture:</span>
+                            <div class="flow-method-tabs" id="flow-method-tabs">
+                                <button type="button" class="flow-tab-btn active" id="flow-tab-seq" onclick="setFlowMethodMode('sequence')">
+                                    Sequence Number (+100/+200)
+                                </button>
+                                <button type="button" class="flow-tab-btn" id="flow-tab-win" onclick="setFlowMethodMode('window')">
+                                    Window Size (30k/60k)
+                                </button>
+                                <button type="button" class="flow-tab-btn" id="flow-tab-cmp" onclick="setFlowMethodMode('compare')">
+                                    Compare Both
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flow-control-right">
+                            <button type="button" class="btn btn-primary btn-sm" id="btn-flow-run" onclick="triggerFlowSimulation()">
+                                ▶ Run Live Simulation
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- WHY IS THE PAYLOAD 0 BYTES? (Requirement 9 - Central Concept) -->
+                    <div class="card card-why-zero-payload" id="flow-zero-payload-card">
+                        <div class="why-zero-header">
+                            <div class="why-zero-title-wrap">
+                                <span class="why-zero-icon">💡</span>
+                                <h3 class="why-zero-title">WHY IS THE PAYLOAD 0 BYTES?</h3>
+                            </div>
+                            <span class="badge badge-accent-green">Fundamental Project Invariant</span>
+                        </div>
+                        <p class="why-zero-text">
+                            "The application data is not placed inside the TCP payload in this simulation. Instead, signaling information is represented through selected TCP header metadata."
+                        </p>
+                        <div class="why-zero-pillars">
+                            <div class="pillar-box">
+                                <span class="pillar-label">PAYLOAD</span>
+                                <span class="pillar-value font-mono">0 BYTES</span>
+                                <span class="pillar-sub">Zero application data in TCP segments</span>
+                            </div>
+                            <div class="pillar-connector">&harr;</div>
+                            <div class="pillar-box highlight-pillar">
+                                <span class="pillar-label">SIGNALING</span>
+                                <span class="pillar-value font-mono">TCP HEADER METADATA</span>
+                                <span class="pillar-sub">Modulated in Sequence Number / Window Size</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MAIN FLOW VISUALIZATION (Requirement 3 & 4) -->
+                    <div class="card card-main-flow-visual" id="flow-main-visual-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">END-TO-END TRANSMISSION PIPELINE</h3>
+                                <p class="card-subtitle">Discrete flow from user message to verified reconstruction</p>
+                            </div>
+                            <span class="badge badge-accent-green font-mono">8 Pipeline Stages</span>
+                        </div>
+
+                        <div class="full-flow-pipeline">
+                            <!-- Stage 1: Sender -->
+                            <div class="flow-stage-card" id="flow-stage-1">
+                                <div class="stage-badge">STAGE 1</div>
+                                <div class="stage-title">SENDER</div>
+                                <div class="stage-content font-mono font-bold" id="flow-sender-msg">"HELLO NETWORK"</div>
+                                <div class="stage-desc">Original user input string</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 2: Binary Encoder -->
+                            <div class="flow-stage-card" id="flow-stage-2">
+                                <div class="stage-badge">STAGE 2</div>
+                                <div class="stage-title">BINARY ENCODER</div>
+                                <div class="stage-content font-mono text-indigo font-bold" id="flow-encoder-bits">01001000 01000101...</div>
+                                <div class="stage-desc">ASCII &rarr; 8-bit stream (104 bits)</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 3: Header Modulator -->
+                            <div class="flow-stage-card" id="flow-stage-3">
+                                <div class="stage-badge">STAGE 3</div>
+                                <div class="stage-title">HEADER MODULATOR</div>
+                                <div class="stage-content" id="flow-modulator-text">
+                                    Converts bits into TCP header metadata
+                                </div>
+                                <div class="stage-desc" id="flow-modulator-rule-hint">Bit 0 &rarr; +100 | Bit 1 &rarr; +200</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 4: TCP Header (CENTER OF ATTENTION - Requirement 4) -->
+                            <div class="flow-stage-card tcp-header-spotlight-card" id="flow-stage-4">
+                                <div class="stage-badge badge-spotlight">STAGE 4 &bull; CORE FOCUS</div>
+                                <div class="stage-title text-emerald">TCP HEADER</div>
+
+                                <div class="tcp-header-inspector-box">
+                                    <div class="tcp-header-row highlight-signaling" id="tcp-row-seq">
+                                        <span class="tcp-field-name font-mono">Sequence Number</span>
+                                        <span class="tcp-field-role font-mono">&rarr; Signaling Field (+100 / +200)</span>
+                                    </div>
+                                    <div class="tcp-header-row highlight-signaling" id="tcp-row-win">
+                                        <span class="tcp-field-name font-mono">Window Size</span>
+                                        <span class="tcp-field-role font-mono">&rarr; Signaling Field (30000 / 60000)</span>
+                                    </div>
+                                    <div class="tcp-header-row tcp-row-meta" id="tcp-row-flags">
+                                        <span class="tcp-field-name font-mono">Flags</span>
+                                        <span class="tcp-field-role font-mono">&rarr; Protocol Metadata (ACK/PSH)</span>
+                                    </div>
+                                    <div class="tcp-header-payload-callout">
+                                        <div class="payload-callout-title">APPLICATION PAYLOAD</div>
+                                        <div class="payload-callout-val font-mono">0 BYTES</div>
+                                        <div class="payload-callout-desc">Strict RFC Invariant &bull; Zero bytes carried in application layer</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 5: Network Simulation (Requirement 10) -->
+                            <div class="flow-stage-card" id="flow-stage-5">
+                                <div class="stage-badge">STAGE 5</div>
+                                <div class="stage-title">NETWORK SIMULATION</div>
+                                <div class="stage-content">
+                                    Packet generation &amp; channel transmission
+                                </div>
+                                <div class="stage-sub-stats font-mono" id="flow-sim-stats-summary">
+                                    Generated: 104 &bull; Received: 104 &bull; Lost: 0
+                                </div>
+                                <div class="stage-desc">Impairment pipeline: Loss &bull; Corruption &bull; Reordering</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 6: Header Demodulator -->
+                            <div class="flow-stage-card" id="flow-stage-6">
+                                <div class="stage-badge">STAGE 6</div>
+                                <div class="stage-title">HEADER DEMODULATOR</div>
+                                <div class="stage-content" id="flow-demod-text">
+                                    Extract header values &amp; recover signaling bits
+                                </div>
+                                <div class="stage-desc" id="flow-demod-values-hint">Sequence &Delta;seq inspection (&plusmn;15 tolerance)</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 7: Binary Decoder -->
+                            <div class="flow-stage-card" id="flow-stage-7">
+                                <div class="stage-badge">STAGE 7</div>
+                                <div class="stage-title">BINARY DECODER</div>
+                                <div class="stage-content font-mono text-indigo font-bold" id="flow-decoder-bits">
+                                    Bits &rarr; Characters
+                                </div>
+                                <div class="stage-desc">Reassembles 8-bit bytes into ASCII text</div>
+                            </div>
+                            <div class="stage-arrow">&darr;</div>
+
+                            <!-- Stage 8: Receiver -->
+                            <div class="flow-stage-card success-stage-card" id="flow-stage-8">
+                                <div class="stage-badge badge-success-stage">STAGE 8</div>
+                                <div class="stage-title">RECEIVER</div>
+                                <div class="stage-content font-mono font-bold text-emerald" id="flow-receiver-msg">"HELLO NETWORK"</div>
+                                <div class="stage-badge-match">
+                                    <span class="badge-soft-green font-bold" id="flow-receiver-badge">✓ MESSAGE MATCH</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC METHOD DETAILS (Requirement 5 & 6) -->
+                    <div class="flow-methods-grid">
+                        <!-- Sequence Number Signaling Card (Requirement 5) -->
+                        <div class="card card-method-explanation" id="flow-seq-method-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">SEQUENCE NUMBER SIGNALING</h3>
+                                    <p class="card-subtitle">Relative sequence increment modulation scheme</p>
+                                </div>
+                                <span class="badge badge-accent-green font-mono">32-bit Header</span>
+                            </div>
+
+                            <div class="method-rule-expl">
+                                <div class="rule-bit-row">
+                                    <span class="rule-bit-name font-mono">BIT 0</span>
+                                    <span class="rule-bit-arrow">&rarr;</span>
+                                    <span class="rule-bit-val font-mono">Sequence increment = +100</span>
+                                </div>
+                                <div class="rule-bit-row">
+                                    <span class="rule-bit-name font-mono">BIT 1</span>
+                                    <span class="rule-bit-arrow">&rarr;</span>
+                                    <span class="rule-bit-val font-mono">Sequence increment = +200</span>
+                                </div>
+                            </div>
+
+                            <div class="seq-example-box">
+                                <div class="example-title">Example Transmission Progression:</div>
+                                <div class="example-subtitle font-mono">Initial Sequence = 10000</div>
+                                <div class="example-steps-grid">
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">0</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-delta font-mono">+100</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-seq font-mono">10100</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">1</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-delta font-mono">+200</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-seq font-mono">10300</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">0</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-delta font-mono">+100</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-seq font-mono">10400</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">1</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-delta font-mono">+200</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-seq font-mono">10600</div>
+                                    </div>
+                                </div>
+                                <div class="example-payload-tag font-mono text-emerald">
+                                    Payload = 0 B
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Window Size Signaling Card (Requirement 6) -->
+                        <div class="card card-method-explanation" id="flow-win-method-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">WINDOW SIZE SIGNALING</h3>
+                                    <p class="card-subtitle">Discrete advertised receive window modulation</p>
+                                </div>
+                                <span class="badge badge-accent-green font-mono">16-bit Header</span>
+                            </div>
+
+                            <div class="method-rule-expl">
+                                <div class="rule-bit-row">
+                                    <span class="rule-bit-name font-mono">BIT 0</span>
+                                    <span class="rule-bit-arrow">&rarr;</span>
+                                    <span class="rule-bit-val font-mono">Window Size = 30000 B</span>
+                                </div>
+                                <div class="rule-bit-row">
+                                    <span class="rule-bit-name font-mono">BIT 1</span>
+                                    <span class="rule-bit-arrow">&rarr;</span>
+                                    <span class="rule-bit-val font-mono">Window Size = 60000 B</span>
+                                </div>
+                            </div>
+
+                            <div class="win-example-box">
+                                <div class="example-title">Example Transmission Progression:</div>
+                                <div class="example-subtitle font-mono">Discrete Advertised Window Levels</div>
+                                <div class="example-steps-grid">
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">0</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-win font-mono">30K</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">1</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-win font-mono">60K</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">0</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-win font-mono">30K</div>
+                                    </div>
+                                    <div class="ex-step">
+                                        <div class="ex-bit font-mono">1</div>
+                                        <div class="ex-arrow">&darr;</div>
+                                        <div class="ex-win font-mono">60K</div>
+                                    </div>
+                                </div>
+                                <div class="example-payload-tag font-mono text-emerald">
+                                    Payload = 0 B
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MESSAGE TRANSFORMATION PANEL (Requirement 8) -->
+                    <div class="card card-msg-transformation-full" id="flow-transformation-panel">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">MESSAGE TRANSFORMATION</h3>
+                                <p class="card-subtitle">Real-time bitstream decomposition and TCP header mapping</p>
+                            </div>
+                            <span class="badge badge-subtle font-mono" id="flow-trans-status-tag">Live Backend Telemetry</span>
+                        </div>
+
+                        <div class="trans-stage-flow">
+                            <!-- 1. Original -->
+                            <div class="trans-box-row">
+                                <span class="trans-row-label">Original:</span>
+                                <span class="trans-row-val font-mono font-bold" id="flow-panel-original">HELLO NETWORK</span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 2. ASCII / UTF-8 Bytes -->
+                            <div class="trans-box-row">
+                                <span class="trans-row-label">ASCII / UTF-8 BYTES:</span>
+                                <span class="trans-row-val font-mono" id="flow-panel-ascii-bytes">48 45 4C 4C 4F 20 4E 45 54 57 4F 52 4B</span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 3. Binary -->
+                            <div class="trans-box-row">
+                                <span class="trans-row-label">BINARY:</span>
+                                <span class="trans-row-val font-mono text-indigo font-bold" id="flow-panel-binary">01001000 01000101 01001100 01001100 01001111 ...</span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 4. Header Symbols -->
+                            <div class="trans-box-row">
+                                <span class="trans-row-label">HEADER SYMBOLS:</span>
+                                <span class="trans-row-val font-mono" id="flow-panel-symbols">0 1 0 0 1 0 0 0 ...</span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 5. TCP Header Values -->
+                            <div class="trans-box-row highlight-row">
+                                <span class="trans-row-label">TCP HEADER VALUES:</span>
+                                <span class="trans-row-val font-mono text-emerald font-bold" id="flow-panel-header-vals">
+                                    Sequence: 10100 &rarr; 10300 &rarr; 10400 &rarr; 10600 &rarr; ...
+                                </span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 6. Decoded Bits -->
+                            <div class="trans-box-row">
+                                <span class="trans-row-label">Decoded Bits:</span>
+                                <span class="trans-row-val font-mono text-indigo font-bold" id="flow-panel-decoded-bits">01001000 01000101 01001100 ...</span>
+                            </div>
+                            <div class="trans-flow-down-arrow">&darr;</div>
+
+                            <!-- 7. Decoded Message -->
+                            <div class="trans-box-row success-row">
+                                <span class="trans-row-label">Decoded Message:</span>
+                                <span class="trans-row-val font-mono font-bold text-emerald" id="flow-panel-decoded-msg">HELLO NETWORK</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SIMULATED NETWORK STAGE CARD (Requirement 10) -->
+                    <div class="card card-simulated-network" id="flow-simulated-network-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">SIMULATED NETWORK</h3>
+                                <p class="card-subtitle">Channel impairment lifecycle and packet transition model</p>
+                            </div>
+                            <span class="badge badge-subtle font-mono">In-Memory Channel</span>
+                        </div>
+
+                        <div class="sim-net-content-grid">
+                            <!-- Visual Network Representation -->
+                            <div class="sim-net-diagram">
+                                <div class="net-node-item font-mono font-bold">SENDER</div>
+                                <div class="net-pipe-arrow">&darr;</div>
+                                <div class="net-packets-badge">
+                                    <span class="badge-dot-green"></span>
+                                    <span class="font-mono">PACKETS (0 B Payload)</span>
+                                </div>
+                                <div class="net-pipe-arrow">&darr;</div>
+                                <div class="net-box-impairment">
+                                    <div class="net-box-title">NETWORK</div>
+                                    <div class="net-box-items">
+                                        <span>• Packet Loss</span>
+                                        <span>• Header Corruption</span>
+                                        <span>• Packet Reordering</span>
+                                    </div>
+                                </div>
+                                <div class="net-pipe-arrow">&darr;</div>
+                                <div class="net-node-item font-mono font-bold">RECEIVER</div>
+                            </div>
+
+                            <!-- Real Experiment Statistics (Requirement 10) -->
+                            <div class="sim-net-stats-table-wrap">
+                                <div class="sim-stats-title">Actual Simulation Metrics:</div>
+                                <table class="data-table sim-net-table">
+                                    <tbody>
+                                        <tr>
+                                            <td>Packets Generated</td>
+                                            <td class="font-mono font-bold" id="flow-stat-generated">104</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Packets Received</td>
+                                            <td class="font-mono font-bold text-emerald" id="flow-stat-received">104</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Packets Lost</td>
+                                            <td class="font-mono font-bold text-rose" id="flow-stat-lost">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Corrupted Packets</td>
+                                            <td class="font-mono font-bold text-warning" id="flow-stat-corrupted">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Reordered Packets</td>
+                                            <td class="font-mono font-bold text-indigo" id="flow-stat-reordered">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Application Payload</td>
+                                            <td class="font-mono font-bold text-emerald">0 B</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INTEGRITY VERIFICATION CARD (Requirement 11) -->
+                    <div class="card card-integrity-verification" id="flow-integrity-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">INTEGRITY VERIFICATION</h3>
+                                <p class="card-subtitle">End-to-end fidelity audit and bit error rate measurement</p>
+                            </div>
+                            <span class="badge-soft-green font-mono font-bold" id="flow-int-badge">✓ VERIFIED</span>
+                        </div>
+
+                        <div class="integrity-audit-grid">
+                            <div class="audit-item">
+                                <span class="audit-label">Original Message:</span>
+                                <span class="audit-val font-mono" id="flow-int-orig">HELLO NETWORK</span>
+                            </div>
+                            <div class="audit-item">
+                                <span class="audit-label">Decoded Message:</span>
+                                <span class="audit-val font-mono font-bold text-emerald" id="flow-int-dec">HELLO NETWORK</span>
+                            </div>
+                            <div class="audit-item">
+                                <span class="audit-label">Bit Error Rate:</span>
+                                <span class="audit-val font-mono" id="flow-int-ber">0.0%</span>
+                            </div>
+                            <div class="audit-item">
+                                <span class="audit-label">Roundtrip Status:</span>
+                                <span class="audit-val font-bold text-emerald" id="flow-int-status-text">✓ VERIFIED (Exact Match)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EDUCATIONAL EXPLANATION (Requirement 12) -->
+                    <div class="card card-educational-expl" id="flow-educational-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">WHAT IS HAPPENING?</h3>
+                                <p class="card-subtitle">Conceptual breakdown of transport-layer metadata signaling</p>
+                            </div>
+                            <span class="badge badge-subtle">Academic Guide</span>
+                        </div>
+
+                        <div class="edu-steps-list">
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono">Step 1</div>
+                                <div class="edu-step-desc">The user's message is converted into binary bits.</div>
+                            </div>
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono">Step 2</div>
+                                <div class="edu-step-desc">Each bit is represented using a selected TCP header attribute (Sequence Number or Window Size).</div>
+                            </div>
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono highlight-step-num">Step 3</div>
+                                <div class="edu-step-desc"><strong>Simulated packets are generated with zero application payload (0 B).</strong></div>
+                            </div>
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono">Step 4</div>
+                                <div class="edu-step-desc">The receiver reads the header metadata values and recovers the signaling bits.</div>
+                            </div>
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono">Step 5</div>
+                                <div class="edu-step-desc">The recovered bits are converted back into the original message string.</div>
+                            </div>
+                            <div class="edu-step-item">
+                                <div class="edu-step-num font-mono">Step 6</div>
+                                <div class="edu-step-desc">Integrity verification confirms whether the message was reconstructed correctly without corruption.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================================================
+                     VIEW 4: DEDICATED LIVE PACKET STREAM (Requirement 9)
+                     ========================================================================= -->
+                <div class="app-view" id="view-packet-stream">
+                    <div class="section-heading-row">
+                        <div>
+                            <h2 class="section-main-title">LIVE PACKET STREAM &amp; TELEMETRY</h2>
+                            <p class="section-sub-title">Detailed inspection of simulated TCP segment headers and native IPC telemetry</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('experiment')">
+                            &larr; Back to Experiment
+                        </button>
+                    </div>
+
+                    <!-- Collapsible Native C Backend Console Stream -->
+                    <div class="card card-console" id="raw-output-console">
+                        <details class="console-accordion" open>
+                            <summary class="console-summary">
+                                <span class="console-summary-title">C Native Engine JSON Telemetry (Subprocess IPC Output)</span>
+                                <span class="badge badge-subtle font-mono">Raw JSON</span>
+                            </summary>
+                            <pre class="console-pre font-mono" id="raw-json-output">// Run an experiment to inspect live C backend output</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- =========================================================================
+                     VIEW 5: DEDICATED COMPARISON PAGE (Requirement 11 & 12)
+                     ========================================================================= -->
+                <div class="app-view" id="view-comparison">
+                    <div class="section-heading-row">
+                        <div>
+                            <h2 class="section-main-title">COMPARISON: SEQUENCE NUMBER VS. WINDOW SIZE</h2>
+                            <p class="section-sub-title">Side-by-side empirical measurements under identical parameters and PRNG seed</p>
+                        </div>
+                        <button type="button" id="btn-run-comparison" class="btn btn-primary btn-sm" onclick="runComparisonBenchmark()">
+                            ▶ Run Comparison Benchmark
+                        </button>
+                    </div>
+
+                    <!-- Side-by-Side Comparison Matrix Card -->
+                    <div class="card card-table-section" id="comparison-matrix-container">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">FACTUAL COMPARATIVE MATRIX</h3>
+                                <p class="card-subtitle">Zero subjective ranking &bull; Empirical discrete simulation metrics</p>
+                            </div>
+                            <span class="badge-payload-zero">Payload = 0 B (Both)</span>
+                        </div>
+
+                        <!-- Factual Comparison Matrix Table (Requirement 12) -->
+                        <div class="table-container">
+                            <table class="data-table comparison-matrix-table" id="comparison-matrix-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>Sequence Number Signaling</th>
+                                        <th>Window Size Signaling</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Packets Generated</td>
+                                        <td id="comp-seq-generated" class="font-mono">—</td>
+                                        <td id="comp-win-generated" class="font-mono">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Packets Received</td>
+                                        <td id="comp-seq-received" class="font-mono text-emerald font-bold">—</td>
+                                        <td id="comp-win-received" class="font-mono text-emerald font-bold">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Packets Lost</td>
+                                        <td id="comp-seq-lost" class="font-mono text-rose font-bold">—</td>
+                                        <td id="comp-win-lost" class="font-mono text-rose font-bold">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Packets Corrupted</td>
+                                        <td id="comp-seq-corrupted" class="font-mono text-warning font-bold">—</td>
+                                        <td id="comp-win-corrupted" class="font-mono text-warning font-bold">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Packets Reordered</td>
+                                        <td id="comp-seq-reordered" class="font-mono text-indigo font-bold">—</td>
+                                        <td id="comp-win-reordered" class="font-mono text-indigo font-bold">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Application Payload</td>
+                                        <td class="font-mono text-emerald font-bold">0 B</td>
+                                        <td class="font-mono text-emerald font-bold">0 B</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Errors Detected</td>
+                                        <td id="comp-seq-errors" class="font-mono">—</td>
+                                        <td id="comp-win-errors" class="font-mono">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Decoded Message</td>
+                                        <td id="comp-seq-decoded" class="font-mono">—</td>
+                                        <td id="comp-win-decoded" class="font-mono">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Integrity Status</td>
+                                        <td id="comp-seq-integrity">—</td>
+                                        <td id="comp-win-integrity">—</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Objective Academic Footnote -->
+                        <div class="comparison-academic-note">
+                            <span class="note-icon">ℹ</span>
+                            <span class="note-text">
+                                Measurements represent discrete simulation outcomes under identical input conditions. 
+                                In accordance with scientific research standards, no subjective scores, "winner" rankings, or arbitrary quality designations are generated.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================================================
+                     VIEW 6: DEDICATED ABOUT PAGE
+                     ========================================================================= -->
+                <div class="app-view" id="view-about">
+                    <div class="section-heading-row">
+                        <div>
+                            <h2 class="section-main-title">ABOUT THIS PROJECT</h2>
+                            <p class="section-sub-title">Academic Computer Networks Laboratory Project</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('experiment')">
+                            &larr; Back to Experiment
+                        </button>
+                    </div>
+
+                    <div class="card card-about" id="project-about-panel">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">TCP HEADER DATA MODULATION &amp; SIGNALING</h3>
+                                <p class="card-subtitle">Technical Reference &bull; Architecture &bull; Invariant Specification</p>
+                            </div>
+                            <span class="badge badge-subtle">Documentation</span>
+                        </div>
+
+                        <div class="about-content-grid">
+                            <div class="about-card">
+                                <div class="about-card-title">Project Purpose &amp; Scope</div>
+                                <p class="about-card-desc">
+                                    This project demonstrates an in-memory discrete simulation of signaling through selected TCP header metadata fields. 
+                                    Digital characters are decomposed into binary bitstreams and modulated into header attributes while maintaining:
+                                </p>
+                                <div class="about-highlight-box">
+                                    <span class="about-highlight-title">APPLICATION PAYLOAD = 0 BYTES</span>
+                                    <span class="about-highlight-sub">Every segment strictly carries zero application data payload bytes.</span>
+                                </div>
+                            </div>
+
+                            <div class="about-card">
+                                <div class="about-card-title">Implemented Signaling Methods</div>
+                                <ul class="about-list">
+                                    <li>
+                                        <strong>1. Sequence Number Signaling:</strong>
+                                        Modulates discrete relative increments in the 32-bit TCP Sequence Number field (&Delta;seq = +100 for Bit 0, +200 for Bit 1).
+                                    </li>
+                                    <li>
+                                        <strong>2. Window Size Signaling:</strong>
+                                        Modulates discrete advertised flow control levels in the 16-bit TCP Window Size field (30000 B for Bit 0, 60000 B for Bit 1).
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="about-card about-card-full">
+                                <div class="about-card-title">Academic &amp; Simulation Notice</div>
+                                <p class="about-card-desc">
+                                    This is an academic computer networks simulation rather than ordinary application data transmission using standard TCP. 
+                                    Real-world TCP endpoints rely on standard stream sockets carrying payload bytes; this research examines covert signaling, 
+                                    steganographic capacity, and side-channel characteristics within transport-layer protocol headers.
+                                </p>
+                                <div class="specs-mini-grid">
+                                    <div class="mini-spec-item">
+                                        <span class="mini-spec-label">Backend Engine</span>
+                                        <span class="mini-spec-val font-mono">C (C99 / GCC)</span>
+                                    </div>
+                                    <div class="mini-spec-item">
+                                        <span class="mini-spec-label">IPC Interface</span>
+                                        <span class="mini-spec-val font-mono">JSON Subprocess</span>
+                                    </div>
+                                    <div class="mini-spec-item">
+                                        <span class="mini-spec-label">Web Gateway</span>
+                                        <span class="mini-spec-val font-mono">Python Flask</span>
+                                    </div>
+                                    <div class="mini-spec-item">
+                                        <span class="mini-spec-label">Payload Size</span>
+                                        <span class="mini-spec-val font-mono text-emerald">0 Bytes Invariant</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Academic Footer -->
+            <footer class="app-footer">
+                <div class="footer-primary">
+                    TCP Header Data Modulation &amp; Signaling &bull; Academic Computer Networks Project
+                </div>
+                <div class="footer-secondary">
+                    In-Memory Discrete Simulation &bull; Native C Engine &bull; Strictly 0-Byte Application Payload
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

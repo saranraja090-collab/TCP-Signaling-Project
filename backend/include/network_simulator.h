@@ -1,0 +1,144 @@
+/**
+ * @file network_simulator.h
+ * @brief In-Memory Network Impairment and Error Simulation Layer.
+ *
+ * Computer Networks Academic Project:
+ * "TCP Header Data Modulation and Signaling"
+ *
+ * SIMULATION OBJECTIVE & PRINCIPLES:
+ * 1. Introduces controlled network conditions (Loss, Corruption, Reordering)
+ *    strictly within an in-memory discrete simulation.
+ * 2. NO raw sockets, NO real packet injection, NO Scapy, NO internet traffic.
+ * 3. STRICT ZERO-PAYLOAD INVARIANT: Every packet before, during, and after
+ *    network simulation maintains payload_length = 0 bytes.
+ * 4. The network simulator operates solely on simulated packet streams and
+ *    has no knowledge of message encoding or decoding.
+ * 5. Impairment Pipeline Order:
+ *    [Packet Generation] -> [Packet Corruption] -> [Packet Loss] -> [Packet Reordering] -> [Receiver]
+ */
+
+#ifndef TCP_SIGNALING_NETWORK_SIMULATOR_H
+#define TCP_SIGNALING_NETWORK_SIMULATOR_H
+
+#include "packet.h"
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Packet transmission status flags for flow tracing and visualization.
+ */
+typedef enum {
+    PACKET_STATUS_OK         = 0,  /**< Packet delivered intact */
+    PACKET_STATUS_CORRUPTED  = 1,  /**< Header signaling attribute corrupted */
+    PACKET_STATUS_LOST       = 2,  /**< Packet dropped by simulated network */
+    PACKET_STATUS_REORDERED  = 3   /**< Packet delivered out of order */
+} packet_status_t;
+
+/**
+ * @struct network_config_t
+ * @brief Configuration parameters for network impairment simulation.
+ */
+typedef struct {
+    uint32_t loss_percent;        /**< Packet loss rate (0 to 100 %) */
+    uint32_t corruption_percent;  /**< Header corruption rate (0 to 100 %) */
+    uint32_t reorder_percent;     /**< Packet reordering rate (0 to 100 %) */
+    uint32_t random_seed;         /**< Deterministic PRNG seed */
+    int enable_loss;              /**< Explicit enable flag for loss */
+    int enable_corruption;        /**< Explicit enable flag for corruption */
+    int enable_reordering;        /**< Explicit enable flag for reordering */
+} network_config_t;
+
+/**
+ * @struct network_stats_t
+ * @brief Counters and telemetry recorded during simulated transmission.
+ */
+typedef struct {
+    size_t packets_generated;     /**< Total packets produced by modulation */
+    size_t packets_received;      /**< Total packets successfully reaching receiver */
+    size_t packets_lost;          /**< Packets dropped by loss simulation */
+    size_t packets_corrupted;     /**< Packets modified by corruption simulation */
+    size_t packets_reordered;     /**< Packets displaced by reordering simulation */
+    uint32_t loss_percent;        /**< Configured loss % */
+    uint32_t corruption_percent;  /**< Configured corruption % */
+    uint32_t reorder_percent;     /**< Configured reorder % */
+    uint32_t random_seed;         /**< PRNG seed used */
+    size_t errors_detected;       /**< Total signaling/packet errors detected at receiver */
+    char primary_error[64];       /**< e.g. "INVALID_SEQUENCE_DELTA", "INVALID_WINDOW_VALUE", "PACKET_ORDER_ERROR", "PACKET_LOSS_DISRUPTION" */
+} network_stats_t;
+
+/**
+ * @struct packet_flow_record_t
+ * @brief Instrumentation record for each packet for visualization tables.
+ */
+typedef struct {
+    uint32_t packet_id;           /**< Original sequential packet ID */
+    uint32_t sequence_number;     /**< Simulated TCP sequence number */
+    uint16_t window_size;         /**< Simulated TCP window size */
+    uint16_t payload_length;      /**< MUST ALWAYS BE 0 */
+    packet_status_t status;       /**< Impairment status */
+    const char *status_str;       /**< "OK", "CORRUPTED", "LOST", "REORDERED" */
+    uint8_t symbol;               /**< Signaled bit (0 or 1) */
+} packet_flow_record_t;
+
+/**
+ * @brief Initialize network configuration with baseline defaults (no impairment).
+ *
+ * @param config Pointer to configuration structure.
+ */
+void network_config_init_default(network_config_t *config);
+
+/**
+ * @brief Initialize network statistics structure.
+ *
+ * @param stats Pointer to statistics structure.
+ * @param config Pointer to configuration structure.
+ */
+void network_stats_init(network_stats_t *stats, const network_config_t *config);
+
+/**
+ * @brief Convert packet status enum to human-readable string.
+ *
+ * @param status Packet status enum.
+ * @return String description ("OK", "CORRUPTED", "LOST", "REORDERED").
+ */
+const char* network_packet_status_str(packet_status_t status);
+
+/**
+ * @brief Transmit simulated packets through the in-memory simulated network layer.
+ *
+ * Strict Impairment Order:
+ * 1. Packet generation (input_packets)
+ * 2. Packet corruption (header signaling field corrupted)
+ * 3. Packet loss (dropped packets excluded from output)
+ * 4. Packet reordering (adjacent or indexed positions swapped)
+ * 5. Receiver receives output_packets
+ *
+ * @param input_packets Array of packets generated by sender modulation.
+ * @param input_count Number of input packets.
+ * @param config Impairment configuration parameters.
+ * @param output_packets Buffer to store surviving packets reaching the receiver.
+ * @param max_output Maximum capacity of output_packets.
+ * @param output_count Output pointer receiving count of delivered packets.
+ * @param stats Output pointer receiving transmission statistics.
+ * @param flow_records Optional buffer to store packet flow visualization records (can be NULL).
+ * @param max_flow Maximum capacity of flow_records buffer.
+ * @param flow_count Output pointer receiving count of flow records (can be NULL).
+ * @return 0 on success, negative error code on invalid parameters or buffer overflow.
+ */
+int network_simulator_transmit(const simulated_packet_t *input_packets, size_t input_count,
+                               const network_config_t *config,
+                               simulated_packet_t *output_packets, size_t max_output,
+                               size_t *output_count,
+                               network_stats_t *stats,
+                               packet_flow_record_t *flow_records, size_t max_flow,
+                               size_t *flow_count);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* TCP_SIGNALING_NETWORK_SIMULATOR_H */
